@@ -18,6 +18,9 @@ SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
 TARGET_LOCATION = "ABU DHABI"
 STATE_FILE = "last_state.json"
 
+# Date filter - only alert if slots are before this date
+CUTOFF_DATE = "01 Dec 2026"  # Format: "DD MMM YYYY"
+
 def fetch_visa_slots():
     """Fetch visa slot data from the API"""
     url = "https://app.checkvisaslots.com/slots/v3"
@@ -43,10 +46,10 @@ def find_abu_dhabi_slots(data):
     
     for location in data['slotDetails']:
         # Check if this is Abu Dhabi (case insensitive match)
-        location_name = location.get('location', '').upper()
+        location_name = location.get('visa_location', '').upper()
         if TARGET_LOCATION in location_name:
             return {
-                'location': location.get('location'),
+                'location': location.get('visa_location'),
                 'slots': location.get('slots', 0),
                 'start_date': location.get('start_date'),
                 'checked': location.get('createdon')
@@ -94,6 +97,22 @@ def send_email(subject, body):
         print(f"Error sending email: {e}")
         return False
 
+def is_date_before_cutoff(start_date):
+    """Check if the start date is before the cutoff date"""
+    if not start_date:
+        return False
+    
+    try:
+        # Parse dates in format "DD MMM YYYY" (e.g., "02 Feb 2027")
+        from datetime import datetime
+        slot_date = datetime.strptime(start_date, "%d %b %Y")
+        cutoff = datetime.strptime(CUTOFF_DATE, "%d %b %Y")
+        return slot_date < cutoff
+    except Exception as e:
+        print(f"Error parsing date '{start_date}': {e}")
+        # If we can't parse, be conservative and return True to send alert
+        return True
+
 def main():
     print(f"Checking visa slots at {datetime.now()}")
     
@@ -132,11 +151,15 @@ def main():
         if current_state['slots'] > 0:
             print(f"Note: {current_state['slots']} slots currently available")
     
-    # Send notifications if slots opened
+    # Send notifications if slots opened AND date is before cutoff
     if slots_opened:
         start_date = current_state.get('start_date', 'Unknown')
-        subject = f"🎉 Visa Slots Available in {TARGET_LOCATION}!"
-        body = f"""Great news!
+        
+        # Check if the date is before our cutoff
+        if is_date_before_cutoff(start_date):
+            print(f"✅ Date {start_date} is before cutoff {CUTOFF_DATE} - sending notification")
+            subject = f"🎉 Visa Slots Available in {TARGET_LOCATION}!"
+            body = f"""Great news!
 
 Visa appointment slots have opened up in {TARGET_LOCATION}!
 
@@ -144,13 +167,17 @@ Number of slots: {current_state['slots']}
 Earliest date: {start_date}
 Checked at: {datetime.now()}
 
+⚠️ This slot is before your cutoff date of {CUTOFF_DATE}!
+
 Go book your appointment now: https://checkvisaslots.com/latest-us-visa-availability/b1b2-regular/
 
 Good luck!
 """
-        
-        # Send email notification
-        send_email(subject, body)
+            
+            # Send email notification
+            send_email(subject, body)
+        else:
+            print(f"⏭️ Date {start_date} is after cutoff {CUTOFF_DATE} - skipping notification")
     
     # Save current state
     current_state['last_checked'] = datetime.now().isoformat()
