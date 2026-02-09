@@ -5,7 +5,6 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
-from twilio.rest import Client
 
 # Configuration from environment variables
 API_KEY = os.environ.get('VISA_API_KEY')
@@ -14,12 +13,6 @@ EMAIL_TO = os.environ.get('EMAIL_TO')
 EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
 SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
-
-# Twilio configuration
-TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
-TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
-TWILIO_FROM_PHONE = os.environ.get('TWILIO_FROM_PHONE')
-TO_PHONE = os.environ.get('TO_PHONE')
 
 # Target location
 TARGET_LOCATION = "ABU DHABI"
@@ -101,23 +94,6 @@ def send_email(subject, body):
         print(f"Error sending email: {e}")
         return False
 
-def send_sms(message):
-    """Send SMS notification via Twilio"""
-    try:
-        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-        
-        sms = client.messages.create(
-            body=message,
-            from_=TWILIO_FROM_PHONE,
-            to=TO_PHONE
-        )
-        
-        print(f"SMS sent successfully. SID: {sms.sid}")
-        return True
-    except Exception as e:
-        print(f"Error sending SMS: {e}")
-        return False
-
 def main():
     print(f"Checking visa slots at {datetime.now()}")
     
@@ -173,11 +149,8 @@ Go book your appointment now: https://checkvisaslots.com/latest-us-visa-availabi
 Good luck!
 """
         
-        sms_message = f"🎉 {current_state['slots']} visa slots available in {TARGET_LOCATION}! Earliest: {start_date}. Book now!"
-        
-        # Send notifications
+        # Send email notification
         send_email(subject, body)
-        send_sms(sms_message)
     
     # Save current state
     current_state['last_checked'] = datetime.now().isoformat()

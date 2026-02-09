@@ -21,7 +21,7 @@ jobs:
         
     - name: Install dependencies
       run: |
-        pip install requests twilio
+        pip install requests
         
     - name: Run visa slot checker
       env:
@@ -31,10 +31,6 @@ jobs:
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
         SMTP_PORT: ${{ secrets.SMTP_PORT }}
-        TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-        TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-        TWILIO_FROM_PHONE: ${{ secrets.TWILIO_FROM_PHONE }}
-        TO_PHONE: ${{ secrets.TO_PHONE }}
       run: |
         python check_visa_slots.py
         
