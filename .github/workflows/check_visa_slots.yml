@@ -2,8 +2,8 @@ name: Check Visa Slots
 
 on:
   schedule:
-    # Run every 10 minutes
-    - cron: '*/10 * * * *'
+    # Run every 1 minute
+    - cron: '*/1 * * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 permissions:
